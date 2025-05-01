@@ -26,13 +26,13 @@ fun HomeScreen(paddingValues: PaddingValues) {
     // Define las funciones del panel de administración
     val adminFunctions = listOf(
         AdminFunction("Crear Evento", Icons.Filled.AddCircle, { /* TODO: Implementar Crear Evento */ }),
-        AdminFunction("Ver Eventos", Icons.Filled.CalendarViewDay, { /* TODO: Implementar Ver Eventos */ }),
+        AdminFunction("Ver Eventos", Icons.Filled.DateRange, { /* TODO: Implementar Ver Eventos */ }),
         AdminFunction("RSVP Evento", Icons.Filled.CheckCircle, { /* TODO: Implementar RSVP Evento */ }),
-        AdminFunction("Historial Eventos", Icons.Filled.History, { /* TODO: Implementar Historial Eventos */ }),
-        AdminFunction("Comentarios", Icons.Filled.ChatBubbleOutline, { /* TODO: Implementar Comentarios */ }),
-        AdminFunction("Calificaciones", Icons.Filled.StarOutline, { /* TODO: Implementar Calificaciones */ }),
+        AdminFunction("Historial Eventos", Icons.Filled.Face, { /* TODO: Implementar Historial Eventos */ }),
+        AdminFunction("Comentarios", Icons.Filled.MailOutline, { /* TODO: Implementar Comentarios */ }),
+        AdminFunction("Calificaciones", Icons.Filled.CheckCircle, { /* TODO: Implementar Calificaciones */ }),
         AdminFunction("Compartir Evento", Icons.Filled.Share, { /* TODO: Implementar Compartir Evento */ }),
-        AdminFunction("Gestionar Usuarios", Icons.Filled.People, { /* TODO: Implementar Gestión de Usuarios */ }),
+        AdminFunction("Gestionar Usuarios", Icons.Filled.Person, { /* TODO: Implementar Gestión de Usuarios */ }),
         // Puedes agregar más funciones aquí
     )
 

@@ -3,9 +3,9 @@ package sv.edu.udb.login.gui.Panel
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.HelpOutline
+import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -59,13 +59,13 @@ fun AppScaffold(
                     onClick = { /* TODO: Navigate to Settings */ }
                 )
                 NavigationBarItem(
-                    icon = { Icon(Icons.Filled.WbSunny, contentDescription = "Modo Oscuro") },
+                    icon = { Icon(Icons.Filled.AddCircle, contentDescription = "Modo Oscuro") },
                     label = { Text("Modo Oscuro") },
                     selected = false,
                     onClick = { /* TODO: Toggle Dark Mode */ }
                 )
                 NavigationBarItem(
-                    icon = { Icon(Icons.Filled.HelpOutline, contentDescription = "Ayuda") },
+                    icon = { Icon(Icons.Filled.Info, contentDescription = "Ayuda") },
                     label = { Text("Ayuda") },
                     selected = false,
                     onClick = { /* TODO: Navigate to Help */ }

@@ -6,15 +6,16 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import sv.edu.udb.login.gui.LoginScreen.LoginScreen
+import androidx.lifecycle.viewmodel.compose.viewModel
 import sv.edu.udb.login.gui.Panel.AppScaffold
 import sv.edu.udb.login.gui.UserViewModel
 import sv.edu.udb.login.gui.Panel.HomeScreen.HomeScreen
 import sv.edu.udb.login.ui.theme.LoginTheme
+import sv.edu.udb.login.gui.AuthViewModel // Asegúrate de importar AuthViewModel si lo usas aquí
+import sv.edu.udb.login.gui.LoginScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -30,14 +31,19 @@ class MainActivity : ComponentActivity() {
 fun LoginApp() {
     val navController = rememberNavController()
     val userViewModel: UserViewModel = viewModel()
+    val authViewModel: AuthViewModel = viewModel() // Obtén el AuthViewModel aquí si lo necesitas en MainActivity
 
     LoginTheme {
         NavHost(navController = navController, startDestination = "login") {
             composable("login") {
-                LoginScreen(onLoginSuccess = { username ->
-                    userViewModel.setUsername(username)
-                    navController.navigate("home")
-                })
+                LoginScreen(
+                    authViewModel = authViewModel,
+                    userViewModel = userViewModel,
+                    onLoginSuccess = { username -> // La lambda ahora recibe un String (nombre de usuario)
+                        userViewModel.setUsername(username)
+                        navController.navigate("home")
+                    }
+                )
             }
             composable("home") {
                 AppScaffold(title = "Panel de Administración", userViewModel = userViewModel) { paddingValues ->
@@ -52,6 +58,12 @@ fun LoginApp() {
 @Composable
 fun DefaultPreview() {
     LoginTheme {
-        LoginScreen(onLoginSuccess = { _ -> }) // Preview ignora el parámetro
+        val authViewModel: AuthViewModel = viewModel()
+        val userViewModel: UserViewModel = viewModel()
+        LoginScreen(
+            authViewModel = authViewModel,
+            userViewModel = userViewModel,
+            onLoginSuccess = {}
+        )
     }
 }

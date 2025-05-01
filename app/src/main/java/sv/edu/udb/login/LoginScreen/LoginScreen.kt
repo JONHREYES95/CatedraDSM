@@ -1,4 +1,4 @@
-package sv.edu.udb.login.gui.LoginScreen
+package sv.edu.udb.login.gui
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.EaseOut
@@ -12,9 +12,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -32,21 +31,54 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import sv.edu.udb.login.gui.AuthViewModel
+import sv.edu.udb.login.gui.GoogleSignInButton
+import sv.edu.udb.login.gui.UserViewModel
 
+//hola xd
 @Composable
 fun LoginScreen(
-    onLoginSuccess: (Any?) -> Unit,
-    startColor: Color = Color.Magenta,
+    authViewModel: AuthViewModel = viewModel(),
+    userViewModel: UserViewModel = viewModel(),
+    onLoginSuccess: (String) -> Unit,
+    startColor: Color = Color.Black,
     endColor: Color = Color.Blue
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
-    var loginError by remember { mutableStateOf(false) }
+
     val density = LocalDensity.current
     val slideDistance = with(density) { (-100).dp.roundToPx() }
+
     val scrollState = rememberScrollState()
     val textColor = Color.White
+
+    val authState by authViewModel.authState.collectAsState()
+
+    LaunchedEffect(key1 = authState) {
+        when (val state = authState) {
+            is AuthViewModel.AuthState.Authenticated -> {
+                val user = state.user
+                val username = user?.displayName?.takeIf { it.isNotBlank() } ?: user?.email ?: "Usuario"
+                println("LoginScreen: Autenticado como $username. Actualizando UserViewModel y navegando...")
+                userViewModel.setUsername(username)
+                onLoginSuccess(username)
+            }
+            is AuthViewModel.AuthState.Error -> {
+                // Solo muestra el error, NO navega ni cierra la app
+                println("LoginScreen: Error de autenticación - ${state.message}")
+                // Aquí puedes mostrar un Snackbar, Toast o simplemente dejar el mensaje en pantalla
+            }
+            is AuthViewModel.AuthState.Loading -> {
+                println("LoginScreen: Estado de carga... (${state.message ?: ""})")
+            }
+            AuthViewModel.AuthState.Unauthenticated -> {
+                println("LoginScreen: Estado no autenticado.")
+            }
+        }
+    }
 
     Surface(
         modifier = Modifier
@@ -67,11 +99,11 @@ fun LoginScreen(
             verticalArrangement = Arrangement.Center
         ) {
             var visibleState by remember { mutableStateOf(false) }
-
-            LaunchedEffect(key1 = true) {
+            LaunchedEffect(key1 = Unit) {
                 visibleState = true
             }
 
+            // Título Animado
             AnimatedVisibility(
                 visible = visibleState,
                 enter = slideInVertically(
@@ -87,6 +119,7 @@ fun LoginScreen(
                 )
             }
 
+            // Campo de Email Animado
             AnimatedVisibility(
                 visible = visibleState,
                 enter = slideInVertically(
@@ -109,10 +142,13 @@ fun LoginScreen(
                         .fillMaxWidth()
                         .padding(bottom = 8.dp),
                     shape = RoundedCornerShape(8.dp),
-                    textStyle = TextStyle(color = textColor)
+                    textStyle = TextStyle(color = textColor),
+                    singleLine = true,
+                    isError = authState is AuthViewModel.AuthState.Error
                 )
             }
 
+            // Campo de Contraseña Animado (sin Visibility/VisibilityOff)
             AnimatedVisibility(
                 visible = visibleState,
                 enter = slideInVertically(
@@ -134,8 +170,9 @@ fun LoginScreen(
                     visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+                            // Usamos el mismo ícono de candado para ambos estados
                             Icon(
-                                imageVector = if (isPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                imageVector = Icons.Filled.Lock,
                                 contentDescription = if (isPasswordVisible) "Ocultar contraseña" else "Mostrar contraseña",
                                 tint = Color.White
                             )
@@ -145,69 +182,89 @@ fun LoginScreen(
                         .fillMaxWidth()
                         .padding(bottom = 16.dp),
                     shape = RoundedCornerShape(8.dp),
-                    textStyle = TextStyle(color = textColor)
+                    textStyle = TextStyle(color = textColor),
+                    singleLine = true,
+                    isError = authState is AuthViewModel.AuthState.Error
                 )
             }
 
+            // Mensaje de Error Animado
             AnimatedVisibility(
-                visible = visibleState,
+                visible = visibleState && authState is AuthViewModel.AuthState.Error,
                 enter = slideInVertically(
                     initialOffsetY = { -slideDistance },
                     animationSpec = tween(durationMillis = 800, easing = EaseOut)
                 )
             ) {
-                if (loginError) {
-                    Text(
-                        "Correo electrónico o contraseña incorrectos",
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                }
+                val errorMessage = (authState as? AuthViewModel.AuthState.Error)?.message ?: "Error desconocido"
+                Text(
+                    text = errorMessage,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
 
+            // Botón Iniciar Sesión Animado
             AnimatedVisibility(
                 visible = visibleState,
                 enter = slideInVertically(
                     initialOffsetY = { -slideDistance },
-                    animationSpec = tween(durationMillis = 900, easing = EaseOut)
+                    animationSpec = tween(durationMillis = 1900, easing = EaseOut)
                 )
             ) {
                 Button(
                     onClick = {
-                        if (email == "admin@gmail.com" && password == "1234") {
-                            // Navegar a la pantalla de administración pero con el nombre de usuario
-                            onLoginSuccess(email)
-                        } else {
-                            loginError = true
-                        }
+                        authViewModel.signInWithEmailPassword(email, password)
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    enabled = authState !is AuthViewModel.AuthState.Loading
                 ) {
-                    Text("Iniciar Sesión", color = Color.White)
+                    if (authState is AuthViewModel.AuthState.Loading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Iniciar Sesión", color = Color.White)
+                    }
                 }
             }
 
+            // Espaciador Animado
             AnimatedVisibility(
                 visible = visibleState,
                 enter = slideInVertically(
                     initialOffsetY = { -slideDistance },
-                    animationSpec = tween(durationMillis = 1000, easing = EaseOut)
+                    animationSpec = tween(durationMillis = 2000, easing = EaseOut)
                 )
             ) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
+            // Botón Google Sign-In Animado
             AnimatedVisibility(
                 visible = visibleState,
                 enter = slideInVertically(
                     initialOffsetY = { -slideDistance },
-                    animationSpec = tween(durationMillis = 1100, easing = EaseOut)
+                    animationSpec = tween(durationMillis = 2500, easing = EaseOut)
+                )
+            ) {
+                GoogleSignInButton(authViewModel = authViewModel, userViewModel = userViewModel)
+            }
+
+            // Botón Olvidaste Contraseña Animado
+            AnimatedVisibility(
+                visible = visibleState,
+                enter = slideInVertically(
+                    initialOffsetY = { -slideDistance },
+                    animationSpec = tween(durationMillis = 1200, easing = EaseOut)
                 )
             ) {
                 TextButton(onClick = {
-                    // Aquí puedes agregar la lógica para navegar a la pantalla de registro o recuperación de contraseña
-                    println("¿Olvidaste tu contraseña?")
+                    println("Botón '¿Olvidaste tu contraseña?' presionado.")
                 }) {
                     Text("¿Olvidaste tu contraseña?", color = Color.White)
                 }

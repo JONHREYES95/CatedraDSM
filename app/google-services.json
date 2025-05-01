@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "71776431591",
+    "project_id": "dsmkotlin",
+    "storage_bucket": "dsmkotlin.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:71776431591:android:ca918a84a00726d4fba142",
+        "android_client_info": {
+          "package_name": "sv.edu.udb.login"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBaVHH7yT75e6KJUBuuHVFMvm4W0_NjuSQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
