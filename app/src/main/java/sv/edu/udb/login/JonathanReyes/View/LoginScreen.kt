@@ -32,23 +32,23 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import sv.edu.udb.login.gui.AuthViewModel
-import sv.edu.udb.login.gui.GoogleSignInButton
-import sv.edu.udb.login.gui.UserViewModel
+import androidx.navigation.NavController
+import sv.edu.udb.login.JonathanReyes.ViewModel.AuthViewModel
+import sv.edu.udb.login.JonathanReyes.ViewModel.GoogleSignInButton
+import sv.edu.udb.login.JonathanReyes.ViewModel.UserViewModel
 
-//hola xd
 @Composable
 fun LoginScreen(
     authViewModel: AuthViewModel = viewModel(),
     userViewModel: UserViewModel = viewModel(),
     onLoginSuccess: (String) -> Unit,
+    navController: NavController,
     startColor: Color = Color.Black,
     endColor: Color = Color.Blue
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
-
     val density = LocalDensity.current
     val slideDistance = with(density) { (-100).dp.roundToPx() }
 
@@ -61,15 +61,23 @@ fun LoginScreen(
         when (val state = authState) {
             is AuthViewModel.AuthState.Authenticated -> {
                 val user = state.user
-                val username = user?.displayName?.takeIf { it.isNotBlank() } ?: user?.email ?: "Usuario"
-                println("LoginScreen: Autenticado como $username. Actualizando UserViewModel y navegando...")
-                userViewModel.setUsername(username)
-                onLoginSuccess(username)
+                val uid = user?.uid
+                if (uid != null) {
+                    authViewModel.obtenerRolUsuario(
+                        uid,
+                        onResult = { rol ->
+                            userViewModel.setUsername(user.displayName ?: user.email ?: "Usuario")
+                            userViewModel.setRol(rol)
+                            onLoginSuccess(user.displayName ?: user.email ?: "Usuario")
+                        },
+                        onError = { error ->
+                            // Maneja el error
+                        }
+                    )
+                }
             }
             is AuthViewModel.AuthState.Error -> {
-                // Solo muestra el error, NO navega ni cierra la app
                 println("LoginScreen: Error de autenticación - ${state.message}")
-                // Aquí puedes mostrar un Snackbar, Toast o simplemente dejar el mensaje en pantalla
             }
             is AuthViewModel.AuthState.Loading -> {
                 println("LoginScreen: Estado de carga... (${state.message ?: ""})")
@@ -264,9 +272,9 @@ fun LoginScreen(
                 )
             ) {
                 TextButton(onClick = {
-                    println("Botón '¿Olvidaste tu contraseña?' presionado.")
+                    navController.navigate("registro")
                 }) {
-                    Text("¿Olvidaste tu contraseña?", color = Color.White)
+                    Text("Aun no tienes un usuario creado, Ingresa acá", color = Color.White)
                 }
             }
         }

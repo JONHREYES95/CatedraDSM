@@ -1,14 +1,12 @@
-package sv.edu.udb.login.gui
+package sv.edu.udb.login.JonathanReyes.ViewModel
 
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-//noinspection UsingMaterialAndMaterial3Libraries
-import androidx.compose.material.Button // Nota: Usaste Material (M2) aquí, pero LoginScreen usa Material3 (M3). Considera unificar.
-//noinspection UsingMaterialAndMaterial3Libraries
-import androidx.compose.material.Text // Nota: Usaste Material (M2) aquí.
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
@@ -24,8 +22,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow // Importa asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await // Para usar await con Tasks de Firebase (opcional, pero más "Kotlin idiomatic")
-
+import kotlinx.coroutines.tasks.await
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -33,27 +30,70 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Modifier
 import sv.edu.udb.login.R
+import com.google.firebase.firestore.FirebaseFirestore
+import sv.edu.udb.login.JonathanReyes.ViewModel.UserViewModel
 
 class AuthViewModel : ViewModel() {
-    private val auth: FirebaseAuth = FirebaseAuth.getInstance() // Especificar tipo es buena práctica
+    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
     private lateinit var googleSignInClient: GoogleSignInClient
-
+    private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
     // Usamos Unauthenticated como estado inicial en lugar de Idle para simplificar
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unauthenticated)
-    val authState: StateFlow<AuthState> = _authState.asStateFlow() // Usa asStateFlow para exponerlo
+    val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
+    fun obtenerRolUsuario(uid: String, onResult: (String) -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val doc = db.collection("usuarios").document(uid).get().await()
+                val rol = doc.getString("rol") ?: "usuario"
+                onResult(rol)
+            } catch (e: Exception) {
+                onError("No se pudo obtener el rol: ${e.message}")
+            }
+        }
+    }
+    // Función para registrar usuario y guardar datos en Firestore
+    fun registrarUsuario(
+        nombre: String,
+        apellido: String,
+        correo: String,
+        contrasena: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                // Crear usuario en Firebase Auth
+                val result = auth.createUserWithEmailAndPassword(correo, contrasena).await()
+                val uid = result.user?.uid ?: throw Exception("No se pudo obtener UID")
+
+                // Guardar datos adicionales en Firestore
+                val usuario = hashMapOf(
+                    "nombre" to nombre,
+                    "apellido" to apellido,
+                    "correo" to correo,
+                    "rol" to "usuario" // Por defecto, rol usuario
+                )
+                db.collection("usuarios").document(uid).set(usuario).await()
+                onSuccess()
+            } catch (e: Exception) {
+                onError(e.message ?: "Error desconocido")
+            }
+        }
+    }
     // --- Inicialización de Google Sign-In (ya existente) ---
     fun initializeGoogleSignInClient(clientId: String, context: Context) {
-        // Asegúrate de que solo se inicialice una vez si es necesario,
-        // aunque llamarlo múltiples veces con el mismo context y gso es seguro.
         if (!::googleSignInClient.isInitialized) {
             val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestIdToken(clientId)
@@ -64,9 +104,8 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    // --- Lógica de Google Sign-In (ya existente) ---
-    fun signInWithGoogle(launcher: androidx.activity.result.ActivityResultLauncher<Intent>) {
-        // Asegúrate de que el cliente esté inicializado antes de intentar usarlo
+    // --- Lógica de Google Sign-In ---
+    fun signInWithGoogle(launcher: ActivityResultLauncher<Intent>) {
         if (!::googleSignInClient.isInitialized) {
             _authState.value = AuthState.Error("Google Sign-In no inicializado. Asegúrate de llamar a initializeGoogleSignInClient.")
             return
@@ -102,6 +141,19 @@ class AuthViewModel : ViewModel() {
                 val authResult = auth.signInWithCredential(credential).await() // Usando await
                 val firebaseUser = authResult.user
                 println("Autenticación con Firebase exitosa. Usuario: ${firebaseUser?.email}")
+
+                //Verificar si el documento de usuario existe
+                firebaseUser?.let { user ->
+                    val docRef = db.collection("usuarios").document(user.uid)
+                    val doc = docRef.get().await()
+                    if (!doc.exists()) {
+                        // El usuario fue eliminado, cerrar sesión y mostrar error
+                        auth.signOut()
+                        _authState.value = AuthState.Error("Tu cuenta ha sido eliminada.")
+                        return@launch
+                    }
+                }
+
                 _authState.value = AuthState.Authenticated(firebaseUser)
             } catch (e: Exception) {
                 // Captura excepciones de la corrutina/await
@@ -109,23 +161,11 @@ class AuthViewModel : ViewModel() {
                 _authState.value = AuthState.Error("Error de autenticación con Firebase: ${e.localizedMessage}")
             }
         }
-        /* // Alternativa con addOnCompleteListener:
-        auth.signInWithCredential(credential)
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    println("Autenticación con Firebase exitosa. Usuario: ${auth.currentUser?.email}")
-                    _authState.value = AuthState.Authenticated(auth.currentUser)
-                } else {
-                    println("Error durante la autenticación de Firebase con Google: ${task.exception?.message}")
-                    _authState.value = AuthState.Error("Error de autenticación con Firebase: ${task.exception?.localizedMessage}")
-                }
-            }
-        */
     }
 
     // --- !!! FUNCIÓN AÑADIDA PARA EMAIL/PASSWORD !!! ---
     fun signInWithEmailPassword(email: String, password: String) {
-        // Validaciones básicas (puedes añadir más)
+        // Validaciones básicas
         if (email.isBlank() || password.isBlank()) {
             _authState.value = AuthState.Error("Correo electrónico y contraseña no pueden estar vacíos.")
             return
@@ -134,10 +174,16 @@ class AuthViewModel : ViewModel() {
         _authState.value = AuthState.Loading("Iniciando sesión...") // Estado de carga
         viewModelScope.launch {
             try {
-                println("Intentando iniciar sesión con Email/Password: $email")
-                val authResult = auth.signInWithEmailAndPassword(email, password).await() // Usando await
+                val authResult = auth.signInWithEmailAndPassword(email, password).await()
                 val firebaseUser = authResult.user
-                println("Inicio de sesión con Email/Password exitoso. Usuario: ${firebaseUser?.email}")
+                //Verificar si el documento de usuario existe
+                val doc = db.collection("usuarios").document(firebaseUser!!.uid).get().await()
+                if (!doc.exists()) {
+                    // El usuario fue eliminado, cerrar sesión y mostrar error
+                    auth.signOut()
+                    _authState.value = AuthState.Error("Tu cuenta ha sido eliminada.")
+                    return@launch
+                }
                 _authState.value = AuthState.Authenticated(firebaseUser)
             } catch (e: Exception) {
                 println("Error durante inicio de sesión con Email/Password: ${e.message}")
@@ -153,7 +199,7 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    // --- Función para cerrar sesión (útil tenerla) ---
+    // --- Función para cerrar sesión ---
     fun signOut() {
         viewModelScope.launch {
             try {
@@ -167,22 +213,19 @@ class AuthViewModel : ViewModel() {
                 println("Sesión cerrada.")
             } catch (e: Exception) {
                 println("Error al cerrar sesión: ${e.message}")
-                // Podrías querer poner un estado de error aquí también, o simplemente mantener el estado anterior.
-                // Por simplicidad, lo dejamos en Unauthenticated o mantenemos el estado actual si falla.
                 _authState.value = AuthState.Error("Error al cerrar sesión: ${e.localizedMessage}")
             }
         }
     }
 
 
-    // --- Función auxiliar para establecer errores (ya existente) ---
+    // --- Función auxiliar para establecer errores---
     fun setError(message: String) {
         _authState.value = AuthState.Error(message)
     }
 
-    // --- Definición de Estados (simplificado) ---
+    // --- Definición de Estados ---
     sealed class AuthState {
-        // object Idle : AuthState() // Eliminado para simplificar, usamos Unauthenticated
         data class Loading(val message: String? = null) : AuthState() // Mensaje opcional para indicar qué carga
         data class Authenticated(val user: FirebaseUser?) : AuthState() // Usuario autenticado
         object Unauthenticated : AuthState() // No autenticado / Sesión cerrada
@@ -190,7 +233,7 @@ class AuthViewModel : ViewModel() {
     }
 }
 
-// --- GoogleSignInButton Composable (ya existente, con notas) ---
+// --- GoogleSignInButton Composable---
 @Composable
 fun GoogleSignInButton(authViewModel: AuthViewModel, userViewModel: UserViewModel) {
     val context = LocalContext.current
@@ -243,7 +286,7 @@ fun GoogleSignInButton(authViewModel: AuthViewModel, userViewModel: UserViewMode
         }
     }
 
-    androidx.compose.material3.Button(
+    Button(
         onClick = {
             if (clientId.isNotBlank()) {
                 println("Botón Google Sign-In presionado.")
@@ -257,15 +300,15 @@ fun GoogleSignInButton(authViewModel: AuthViewModel, userViewModel: UserViewMode
             .fillMaxWidth()
             .padding(horizontal = 60.dp)
             .height(45.dp),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = ButtonDefaults.buttonColors(containerColor = Color.White)
     ) {
         if(authState is AuthViewModel.AuthState.Loading) {
-            androidx.compose.material3.Text("Iniciando con Google...")
+            Text("Iniciando con Google...")
         } else {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.Center
+                horizontalArrangement = Arrangement.Center
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.google),
@@ -274,7 +317,7 @@ fun GoogleSignInButton(authViewModel: AuthViewModel, userViewModel: UserViewMode
                     modifier = Modifier.size(40.dp)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
-                androidx.compose.material3.Text(
+                Text(
                     text = "Iniciar sesión con Google",
                     color = Color.Black
                 )

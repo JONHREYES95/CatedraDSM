@@ -4,37 +4,68 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import sv.edu.udb.login.ui.theme.LoginTheme
+import androidx.navigation.NavController
+import androidx.compose.material.icons.filled.HowToReg
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.BarChart
 
 // Define una data class para representar cada función del panel
 data class AdminFunction(val title: String, val icon: ImageVector, val onClick: () -> Unit)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(paddingValues: PaddingValues) {
+fun HomeScreen(
+    paddingValues: PaddingValues,
+    navController: NavController,
+    organizadorId: String,
+    userRole: String
+) {
     val scrollState = rememberScrollState()
 
     // Define las funciones del panel de administración
-    val adminFunctions = listOf(
-        AdminFunction("Crear Evento", Icons.Filled.AddCircle, { /* TODO: Implementar Crear Evento */ }),
-        AdminFunction("Ver Eventos", Icons.Filled.DateRange, { /* TODO: Implementar Ver Eventos */ }),
-        AdminFunction("RSVP Evento", Icons.Filled.CheckCircle, { /* TODO: Implementar RSVP Evento */ }),
-        AdminFunction("Historial Eventos", Icons.Filled.Face, { /* TODO: Implementar Historial Eventos */ }),
-        AdminFunction("Comentarios", Icons.Filled.MailOutline, { /* TODO: Implementar Comentarios */ }),
-        AdminFunction("Calificaciones", Icons.Filled.CheckCircle, { /* TODO: Implementar Calificaciones */ }),
-        AdminFunction("Compartir Evento", Icons.Filled.Share, { /* TODO: Implementar Compartir Evento */ }),
-        AdminFunction("Gestionar Usuarios", Icons.Filled.Person, { /* TODO: Implementar Gestión de Usuarios */ }),
+    val adminFunctions = if (userRole == "admin") {listOf(
+        AdminFunction("Gestionar Usuarios", Icons.Filled.Group, {
+            navController.navigate("admin_usuarios")
+        }),
+        AdminFunction("Crear Evento", Icons.Filled.AddCircle, {
+            navController.navigate("crear_evento")
+        }),
+        AdminFunction("Ver Eventos", Icons.Filled.CalendarMonth, {
+            navController.navigate("ver_eventos")
+        }),
+        AdminFunction("RSVP Evento", Icons.Filled.HowToReg, {
+            navController.navigate("rsvp_evento")
+        }),
+        AdminFunction("Historial Eventos", Icons.Filled.History, {
+            navController.navigate("historial_eventos")
+        }),
+        AdminFunction("Estadísticas", Icons.Filled.BarChart, {
+            navController.navigate("estadisticas")
+        }),
         // Puedes agregar más funciones aquí
-    )
+    )}else {
+        listOf(
+            AdminFunction("RSVP Evento", Icons.Filled.HowToReg, {
+                navController.navigate("rsvp_evento")
+            }),
+            AdminFunction("Historial Eventos", Icons.Filled.History, {
+                navController.navigate("historial_eventos")
+            }),
+            AdminFunction("Estadísticas", Icons.Filled.BarChart, {
+                navController.navigate("estadisticas")
+            }),
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -92,15 +123,5 @@ fun AdminFunctionItem(function: AdminFunction) {
                 style = MaterialTheme.typography.bodyMedium
             )
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun HomeScreenPreview() {
-    LoginTheme {
-        // Para la preview de HomeScreen, podrías pasar un UserViewModel simulado si lo necesitas
-        // o simplemente no usarlo si la preview no depende de él directamente.
-        HomeScreen(paddingValues = PaddingValues())
     }
 }

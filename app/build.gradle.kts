@@ -76,4 +76,6 @@ dependencies {
     implementation (libs.androidx.material.icons.core)
     implementation (libs.material.icons.extended)
     implementation (libs.androidx.compose.material.material.icons.extended)
+    //Uso de FirestoneDB
+    implementation (libs.firebase.firestore.ktx)
 }
