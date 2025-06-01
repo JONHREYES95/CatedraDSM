@@ -1,9 +1,10 @@
 # Proyecto de Cátedra DSM
 
 APLICACIÓN DE GESTIÓN DE EVENTOS COMUNITARIOS 
-REPOSITORIO EN GITHUB 
-MOCKUPS EN FIGMA 
-BOARD TRELLO 
+
+MOCKUPS EN FIGMA : https://www.figma.com/design/KxjdQaw1qbnHhN5fqigC1Z/Untitled?node-id=0-1&t=VuFn7jIilu2dWbHv-1
+
+BOARD TRELLO : https://trello.com/invite/b/6837e1bed99af0b72c82db7c/ATTI2da38dd55a4955aa15a3bfb34f8569788283B494/proyecto-kotlin-aplicacion-de-eventos-comunitarios
 
 Aplicación móvil desarrollada en Kotlin para la gestión de eventos académicos, utilizando Jetpack Compose y Firebase. Permite registro y autenticación de usuarios, creación y visualización de eventos, comentarios, calificaciones, estadísticas y administración de usuarios.
 
