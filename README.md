@@ -1,5 +1,10 @@
 # Proyecto de Cátedra DSM
 
+APLICACIÓN DE GESTIÓN DE EVENTOS COMUNITARIOS 
+REPOSITORIO EN GITHUB 
+MOCKUPS EN FIGMA 
+BOARD TRELLO 
+
 Aplicación móvil desarrollada en Kotlin para la gestión de eventos académicos, utilizando Jetpack Compose y Firebase. Permite registro y autenticación de usuarios, creación y visualización de eventos, comentarios, calificaciones, estadísticas y administración de usuarios.
 
 ## Estructura del Proyecto
